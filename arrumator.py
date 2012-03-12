@@ -14,7 +14,7 @@ PRESERVE_CONTENTS = ['script']
 
 def prettify(self,
         eventual_encoding=DEFAULT_OUTPUT_ENCODING,
-        tabsize=4):
+        tabsize=1):
     """
     A custom prettify function. It work mostly like BS's version, but
 
@@ -197,7 +197,9 @@ def _main():
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--tidy', action='store_true', default=False)
+    parser.add_argument('--tidy', action='store_true', default=False,
+            help=('Parse the document with htmltidy. This option requires htmltidy installed.'))
+    parser.add_argument('--tabsize', type=int, default=4)
     parser.add_argument('file', nargs='?')
 
     args = parser.parse_args()
@@ -222,7 +224,7 @@ def _main():
                     "in your system.")
             sys.exit(1)
 
-    print prettify(BeautifulSoup(html), tabsize=4).encode('utf-8')
+    print prettify(BeautifulSoup(html), tabsize=args.tabsize).encode('utf-8')
 
 if __name__ == '__main__':
     _main()
