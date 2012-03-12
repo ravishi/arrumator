@@ -189,6 +189,7 @@ def _main():
                 html = fp.read()
         except IOError:
             print >> sys.stderr, ("Failed to read content from `%s'" % args.file)
+            sys.exit(1)
     else:
         html = sys.stdin.read()
 
