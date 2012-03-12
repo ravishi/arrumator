@@ -9,6 +9,9 @@ from bs4.element import Tag
 from bs4 import BeautifulSoup
 
 
+PRESERVE_CONTENTS = ['script']
+
+
 def prettify(self,
         eventual_encoding=DEFAULT_OUTPUT_ENCODING,
         tabsize=4):
@@ -82,8 +85,13 @@ def decode(self, indent_level=None,
         space = ''
         indent_contents = None
 
-    contents = decode_contents(self, indent_contents,
-            eventual_encoding, substitute_html_entities, tabsize)
+    if self.name in PRESERVE_CONTENTS:
+        contents = self.text
+    else:
+        contents = decode_contents(self, indent_contents,
+                eventual_encoding, substitute_html_entities, tabsize)
+
+    isempty = not contents.strip('\n').strip()
 
     if self.hidden:
         # This is the 'document root' object.
@@ -97,12 +105,13 @@ def decode(self, indent_level=None,
             s.append(space)
         s.append('<%s%s%s%s>' % (
                 prefix, self.name, attribute_string, close))
-        if pretty_print and (contents or not closeTag):
+        if pretty_print and (not isempty or not closeTag):
             s.append("\n")
-        s.append(contents)
-        if pretty_print and contents and contents[-1] != "\n":
+        if not isempty:
+            s.append(contents)
+        if pretty_print and not isempty and contents[-1] != "\n":
             s.append("\n")
-        if pretty_print and contents and closeTag:
+        if pretty_print and not isempty and closeTag:
             s.append(space)
         s.append(closeTag)
         if pretty_print and closeTag and self.next_sibling:
