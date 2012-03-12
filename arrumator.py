@@ -9,7 +9,9 @@ from bs4.element import Tag
 from bs4 import BeautifulSoup
 
 
-def prettify(self, tabsize=4):
+def prettify(self,
+        eventual_encoding=DEFAULT_OUTPUT_ENCODING,
+        tabsize=4):
     """
     A custom prettify function. It work mostly like BS's version, but
 
@@ -19,7 +21,15 @@ def prettify(self, tabsize=4):
 
             <script></script> instead of <script>\\n[indent]</script>
     """
-    return decode(self, True, tabsize=tabsize)
+    if self.is_xml:
+        # Print the XML declaration
+        encoding_part = ''
+        if eventual_encoding != None:
+            encoding_part = ' encoding="%s"' % eventual_encoding
+        prefix = u'<?xml version="1.0"%s?>\n' % encoding_part
+    else:
+        prefix = u''
+    return prefix + decode(self, 0, eventual_encoding, tabsize=tabsize)
 
 
 def decode(self, indent_level=None,
