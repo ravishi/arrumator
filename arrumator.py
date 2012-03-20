@@ -194,7 +194,7 @@ def tidy(html, extra_options=None):
 
 
 def arruma(html, options):
-    return prettify(BeautifulSoup(html), tabsize=options.tabsize)
+    return prettify(BeautifulSoup(html, options.parser), tabsize=options.tabsize)
 
 
 def _main():
@@ -204,9 +204,20 @@ def _main():
     parser.add_argument('--tidy', action='store_true', default=False,
             help=('Parse the document with htmltidy. This option requires htmltidy installed.'))
     parser.add_argument('--tabsize', type=int, default=4)
+
+    # FIXME wouldn't it be better to set a default parser instead of
+    # letting bs4 decide that? I think that that would be more clear
+    # for people who are not familiar with bs4
+    parser.add_argument('--parser', default=None,
+            choices=('html.parser', 'lxml', 'lxml.xml', 'html5lib'))
+
     parser.add_argument('file', nargs='?')
 
     args = parser.parse_args()
+
+    # fix the parser: bs4 expects `['lxml', 'xml']` but `lxml.xml`
+    if args.parser == 'lxml.xml':
+        args.parser = args.parser.split('.')
 
     if args.file:
         try:
