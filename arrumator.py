@@ -5,48 +5,24 @@ from itertools import chain
 from bs4.element import DEFAULT_OUTPUT_ENCODING
 from bs4.element import EntitySubstitution
 from bs4.element import NavigableString
-from bs4.element import Tag
+from bs4.element import Tag, Comment
 from bs4 import BeautifulSoup
 
 
-PRESERVE_CONTENTS = ['script']
-
-
-def prettify(self,
-        eventual_encoding=DEFAULT_OUTPUT_ENCODING,
-        tabsize=1):
-    """
-    A custom prettify function. It work mostly like BS's version, but
-
-      - it has configurable tab size: `prettify(tabsize=4)`
-      - it keep the opening and the closing tags of a empty tag in
-        the same line. ex.::
-
-            <script></script> instead of <script>\\n[indent]</script>
-    """
-    if self.is_xml:
-        # Print the XML declaration
-        encoding_part = ''
-        if eventual_encoding != None:
-            encoding_part = ' encoding="%s"' % eventual_encoding
-        prefix = u'<?xml version="1.0"%s?>\n' % encoding_part
-    else:
-        prefix = u''
-    return prefix + decode(self, 0, eventual_encoding, tabsize=tabsize)
+DO_NOT_FORMAT = ['script']
 
 
 def decode(self, indent_level=None,
-            eventual_encoding=DEFAULT_OUTPUT_ENCODING,
-            substitute_html_entities=False,
-            tabsize=1):
+           eventual_encoding=DEFAULT_OUTPUT_ENCODING,
+           formatter="minimal", tabsize=4):
     """Returns a Unicode representation of this tag and its contents.
 
     :param eventual_encoding: The tag is destined to be
-        encoded into this encoding. This method is _not_
-        responsible for performing that encoding. This information
-        is passed in so that it can be substituted in if the
-        document contains a <META> tag that mentions the document's
-        encoding.
+       encoded into this encoding. This method is _not_
+       responsible for performing that encoding. This information
+       is passed in so that it can be substituted in if the
+       document contains a <META> tag that mentions the document's
+       encoding.
     """
     attrs = []
     if self.attrs:
@@ -64,7 +40,7 @@ def decode(self, indent_level=None,
                     val = self.substitute_encoding(val, eventual_encoding)
 
                 decoded = (str(key) + '='
-                            + EntitySubstitution.substitute_xml(val, True))
+                           + EntitySubstitution.substitute_xml(val, True))
             attrs.append(decoded)
     close = ''
     closeTag = ''
@@ -85,11 +61,8 @@ def decode(self, indent_level=None,
         space = ''
         indent_contents = None
 
-    if self.name in PRESERVE_CONTENTS:
-        contents = self.text
-    else:
-        contents = decode_contents(self, indent_contents,
-                eventual_encoding, substitute_html_entities, tabsize)
+    contents = decode_contents(self, indent_contents,
+            eventual_encoding, formatter, tabsize)
 
     isempty = not contents.strip('\n').strip()
 
@@ -121,27 +94,36 @@ def decode(self, indent_level=None,
 
 
 def decode_contents(self, indent_level=None,
-                    eventual_encoding=DEFAULT_OUTPUT_ENCODING,
-                    substitute_html_entities=False,
-                    tabsize=1):
+                   eventual_encoding=DEFAULT_OUTPUT_ENCODING,
+                   formatter="minimal", tabsize=4):
     """Renders the contents of this tag as a Unicode string.
 
     :param eventual_encoding: The tag is destined to be
-        encoded into this encoding. This method is _not_
-        responsible for performing that encoding. This information
-        is passed in so that it can be substituted in if the
-        document contains a <META> tag that mentions the document's
-        encoding.
+       encoded into this encoding. This method is _not_
+       responsible for performing that encoding. This information
+       is passed in so that it can be substituted in if the
+       document contains a <META> tag that mentions the document's
+       encoding.
     """
     pretty_print = (indent_level is not None)
     s = []
+
+    # XXX don't perform entity substitution on the content of scripts
+    if self.name in DO_NOT_FORMAT:
+        string_formatter = None
+    else:
+        string_formatter = formatter
+
     for c in self:
         text = None
-        if isinstance(c, NavigableString):
-            text = c.output_ready(substitute_html_entities)
+        if isinstance(c, Comment):
+            # XXX don't format comments
+            text = c.output_ready(None)
+        elif isinstance(c, NavigableString):
+            text = c.output_ready(string_formatter)
         elif isinstance(c, Tag):
             s.append(decode(c, indent_level, eventual_encoding,
-                                substitute_html_entities, tabsize=tabsize))
+                              formatter))
         if text and indent_level:
             text = text.strip()
         if text:
@@ -194,7 +176,7 @@ def tidy(html, extra_options=None):
 
 
 def arruma(html, options):
-    return prettify(BeautifulSoup(html, options.parser), tabsize=options.tabsize)
+    return decode(BeautifulSoup(html, options.parser), tabsize=options.tabsize)
 
 
 def _main():

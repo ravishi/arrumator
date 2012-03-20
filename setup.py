@@ -15,7 +15,7 @@ setup(name="arrumator",
                    "Programming Language :: Python",
                    "Topic :: Text Processing :: Markup :: HTML",
                    ],
-      install_requires=['beautifulsoup4 == 4.00b10'],
+      install_requires=['beautifulsoup4 == 4.0.1'],
       url="http://github.com/ravishi/arrumator",
       license="WTFPL",
       download_url="http://github.com/ravishi/arrumator/downloads"
