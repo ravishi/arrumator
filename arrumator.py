@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-import tempfile
 import subprocess
+from itertools import chain
 
 from bs4.element import DEFAULT_OUTPUT_ENCODING
 from bs4.element import EntitySubstitution
@@ -153,47 +153,51 @@ def decode_contents(self, indent_level=None,
     return ''.join(s)
 
 
-def mktidyconfig():
-    config = """
-bare: yes
-doctype: auto
-drop-empty-paras: true
-hide-endtags: true
-logical-emphasis: true
-output-xhtml: true
-indent: true
-indent-spaces: 4
-sort-attributes: alpha
-tab-size: 4
-wrap: 0
-char-encoding: utf8
-input-encoding: utf-8
-newline: LF
-output-encoding: utf-8
-break-before-br: true
-"""
-    fp = tempfile.NamedTemporaryFile()
-    fp.write(config)
-    fp.flush()
-    return fp
+def _tidy_option_value(value):
+    if isinstance(value, bool):
+        return str(value).lower()
+    else:
+        return str(value)
 
 
-def tidyhtml(html):
-    with mktidyconfig() as config:
-        with tempfile.NamedTemporaryFile() as fp:
-            fp.write(html.encode('utf-8'))
-            fp.flush()
-            args = ['tidy', '-config', config.name, fp.name]
-            proc = subprocess.Popen(args,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE
-                )
-            out, err = proc.communicate()
-            return out
+def tidy(html, extra_options=None):
+    options = {
+        'bare': True,
+        'doctype': 'strict',
+        'drop-empty-paras': True,
+        'hide-endtags': True,
+        'logical-emphasis': True,
+        'output-xhtml': True,
+        'indent': True,
+        'indent-spaces': 4,
+        'sort-attributes': 'alpha',
+        'tab-size': 4,
+        'wrap': 0,
+        #'char-encoding': 'utf-8',
+        'newline': 'LF',
+        'break-before-br': True,
+    }
+
+    if extra_options is not None:
+        options.update(extra_options)
+
+    tidyopts = (('--%s' % k, _tidy_option_value(v)) for k, v in options.iteritems())
+    args = ('tidy', '-utf8') + tuple(chain(*tidyopts))
+
+    proc = subprocess.Popen(args,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+    out, err = proc.communicate(html.encode('utf-8'))
+    return out.decode('utf-8')
+
+
+def arruma(html, options):
+    return prettify(BeautifulSoup(html), tabsize=options.tabsize)
 
 
 def _main():
-    import sys
     import argparse
 
     parser = argparse.ArgumentParser()
@@ -210,7 +214,7 @@ def _main():
                 html = fp.read()
         except IOError:
             print >> sys.stderr, ("Failed to read content from `%s'" % args.file)
-            sys.exit(1)
+            return 1
     else:
         html = sys.stdin.read()
 
@@ -218,13 +222,16 @@ def _main():
 
     if args.tidy:
         try:
-            html = tidyhtml(html).decode('utf-8')
+            html = tidy(html)
         except OSError:
             print >> sys.stderr, ("Failed to run tidy. Please make sure tidy is installed"
                     "in your system.")
-            sys.exit(1)
+            return 1
 
-    print prettify(BeautifulSoup(html), tabsize=args.tabsize).encode('utf-8')
+    print arruma(html, args).encode('utf-8')
+
+    return 0
 
 if __name__ == '__main__':
-    _main()
+    import sys
+    sys.exit(_main())
