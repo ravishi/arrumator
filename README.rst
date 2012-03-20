@@ -18,5 +18,4 @@ If you're dealing with really dirty HTML you may want to try tidy. ::
 Development
 ===========
 
-Yes, we use unecessary temporary files. Yes, we don't support all the arguments
-that we could. And yes, solved my problems so far.
+If you have any tip, improvement or request, you are encouraged to make me know.
