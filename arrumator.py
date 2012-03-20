@@ -123,7 +123,7 @@ def decode_contents(self, indent_level=None,
             text = c.output_ready(string_formatter)
         elif isinstance(c, Tag):
             s.append(decode(c, indent_level, eventual_encoding,
-                              formatter))
+                              formatter, tabsize=tabsize))
         if text and indent_level:
             text = text.strip()
         if text:
@@ -176,7 +176,7 @@ def tidy(html, extra_options=None):
 
 
 def arruma(html, options):
-    return decode(BeautifulSoup(html, options.parser), tabsize=options.tabsize)
+    return decode(BeautifulSoup(html, options.parser), 0, tabsize=options.tabsize)
 
 
 def _main():
